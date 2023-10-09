@@ -15,8 +15,11 @@ def main():
     optimizer = torch.optim.Adam(model.parameters())
     criterion = torch.nn.BCEWithLogitsLoss()
 
+    image_path = 'data/pets/images'
+    seg_path = 'data/pets/annotations/trimaps'
+
     (train_image_list, train_seg_list), (val_image_list, val_seg_list) = \
-        get_train_val_file_list()
+        get_train_val_file_list(image_path, seg_path)
     
     train_dataset = PetOnlySegmentationDataSet(train_image_list, train_seg_list)
     train_dl = DataLoader(train_dataset, shuffle=True)

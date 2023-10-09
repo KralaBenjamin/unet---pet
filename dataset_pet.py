@@ -44,9 +44,8 @@ class PetOnlySegmentationDataSet(Dataset):
     def __len__(self):
         return len(self.imagefilelist)
 
-def get_train_val_file_list(split=0.7):
-    image_path = 'pet_data/images'
-    seg_path = 'pet_data/annotations/trimaps'
+def get_train_val_file_list(image_path, seg_path, split=0.7):
+
     image_filelist = sorted([filename
         for filename in listdir(image_path)
         if not filename.endswith('.mat')
