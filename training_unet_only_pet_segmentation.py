@@ -6,6 +6,7 @@ from dataset_pet import get_train_val_file_list, PetOnlySegmentationDataSet
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from torchvision.transforms import Resize
 
 def main():
     DEVICE = 'cpu'
@@ -21,31 +22,37 @@ def main():
     (train_image_list, train_seg_list), (val_image_list, val_seg_list) = \
         get_train_val_file_list(image_path, seg_path)
     
-    train_dataset = PetOnlySegmentationDataSet(train_image_list, train_seg_list)
+    transform = Resize((256, 256), antialias=True)
+    
+    train_dataset = PetOnlySegmentationDataSet(
+        train_image_list, train_seg_list, transform=transform)
     train_dl = DataLoader(train_dataset, shuffle=True)
 
     val_dataset = PetOnlySegmentationDataSet(val_image_list, val_seg_list)
     val_dl = DataLoader(val_dataset)
 
+    """
+    for over_x, over_y in train_dataset:
+        break
 
-    """    
-        over_x, over_y = train_dataset[0]
-        for i in range(10):
-            print(i)
-            pred = model(over_x)
-
-            loss = criterion(pred[0, 0], over_y)
-            loss.backward()
-
-            optimizer.step()
-            optimizer.zero_grad()
-
+    
+    over_x = over_x
+    over_y = over_y.unsqueeze(dim=0)
+    for i in range(10):
+        print(i)
         pred = model(over_x)
-        pred_log = (pred > 0.5).float()
-        summe  = (pred_log == over_y).sum()
-        breakpoint()
-        print(summe / (pred.shape[0] * pred.shape[1]), pred.shape, over_y)
-        # todo: berechnung fetirg machen
+
+        loss = criterion(pred, over_y)
+        loss.backward()
+
+        optimizer.step()
+        optimizer.zero_grad()
+
+    pred = model(over_x)
+    pred_log = (pred > 0.5).float()
+    summe  = (pred_log == over_y).sum()
+    print(summe / (pred.shape[-2] * pred.shape[-1]))
+    # todo: berechnung fetirg machen
     """
 
     """

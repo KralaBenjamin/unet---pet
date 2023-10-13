@@ -37,7 +37,10 @@ class PetOnlySegmentationDataSet(Dataset):
         image = rearrange(image, "H W C -> C H W")
         image = image.unsqueeze(dim=0).float()
 
-        segmentation =  torch.tensor(segmentation).float()
+        segmentation =  torch.tensor(segmentation).float().unsqueeze(dim=0)
+
+        if self.transform:
+            image, segmentation = self.transform(image), self.transform(segmentation)
 
         return image, segmentation
     
