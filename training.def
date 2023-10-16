@@ -1,0 +1,13 @@
+Bootstrap: localimage
+From: ./conda_env.sif
+
+
+%files 
+  mnist_train.py /opt/mnist_train.py
+
+
+%runscript
+  echo "$(pwd)"
+  python /opt/mnist_train.py 
+
+
