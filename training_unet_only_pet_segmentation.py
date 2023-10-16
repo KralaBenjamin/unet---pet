@@ -6,7 +6,8 @@ from dataset_pet import get_train_val_file_list, PetOnlySegmentationDataSet
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from torchvision.transforms import Resize
+from torchvision.transforms import Resize, CenterCrop
+from torchvision.transforms.functional import crop
 
 def main():
     DEVICE = 'cpu'
@@ -22,20 +23,19 @@ def main():
     (train_image_list, train_seg_list), (val_image_list, val_seg_list) = \
         get_train_val_file_list(image_path, seg_path)
     
-    transform = Resize((256, 256), antialias=True)
+    transform = CenterCrop((256, 256))
     
     train_dataset = PetOnlySegmentationDataSet(
         train_image_list, train_seg_list, transform=transform)
-    train_dl = DataLoader(train_dataset, shuffle=True)
+    train_dl = DataLoader(train_dataset, shuffle=True, batch_size=16)
 
     val_dataset = PetOnlySegmentationDataSet(val_image_list, val_seg_list)
     val_dl = DataLoader(val_dataset)
 
-    """
+    
     for over_x, over_y in train_dataset:
         break
 
-    
     over_x = over_x
     over_y = over_y.unsqueeze(dim=0)
     for i in range(10):
@@ -53,22 +53,10 @@ def main():
     summe  = (pred_log == over_y).sum()
     print(summe / (pred.shape[-2] * pred.shape[-1]))
     # todo: berechnung fetirg machen
-    """
-
-    """
-    TODO: UserWarning: The default value of the antialias parameter of all the 
-    resizing transforms (Resize(), RandomResizedCrop(), etc.) will change from 
-    None to True in v0.17, in order to be consistent across the PIL and Tensor 
-    backends. To suppress this warning, directly pass antialias=True (recommended, 
-    future default), antialias=None (current default, which means False for Tensors 
-    and True for PIL), or antialias=False (only works on Tensors - PIL will still use 
-    antialiasing). This also applies if you are using the inference transforms from the 
-    models weights: update the call to weights.transforms(antialias=True).
-    """
-    """
-    TODO: Croppe den Scheiß für mehr Effizienz!
     
-    """
+
+    exit()
+
 
     n_trained_batches = 0
     for i_epoch in range(EPOCHS):

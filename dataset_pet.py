@@ -11,10 +11,12 @@ from os.path import join
 from random import random
 import torch
 from einops import rearrange
+from torchvision.transforms.functional import crop
 
 
 class PetOnlySegmentationDataSet(Dataset):
-    def __init__(self, ImageFileList, SegmentationFileList, transform=None):
+    def __init__(self, ImageFileList, SegmentationFileList, 
+                 transform=None):
         self.imagefilelist = ImageFileList
         self.segmentationfilelist = SegmentationFileList
         self.transform = transform  
@@ -30,8 +32,6 @@ class PetOnlySegmentationDataSet(Dataset):
         segmentation[segmentation == 2] = 0
         segmentation[segmentation == 3] = 0
 
-        if self.transform is not None:
-            pass
 
         image = torch.tensor(image)
         image = rearrange(image, "H W C -> C H W")
