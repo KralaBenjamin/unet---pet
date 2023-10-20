@@ -13,16 +13,16 @@ import mlflow
 def main():
     DEVICE = 'cpu'
     EPOCHS = 5
-    ONLY_OVERFIT = False
+    ONLY_OVERFIT = True
 
     model = UNET(3, 1).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters())
     criterion = torch.nn.BCEWithLogitsLoss()
 
-    print(f'{mlflow.get_tracking_url()=}')
+    print(f'{mlflow.get_tracking_uri()=}')
 
-    image_path = 'data/pets/images'
-    seg_path = 'data/pets/annotations/trimaps'
+    image_path = '/data/images'
+    seg_path = '/data/annotations/trimaps'
 
     (train_image_list, train_seg_list), (val_image_list, val_seg_list) = \
         get_train_val_file_list(image_path, seg_path)
