@@ -3,11 +3,12 @@ From: ./conda_env.sif
 
 
 %files 
-  mnist_train.py /opt/mnist_train.py
-
-
+  training_unet_only_pet_segmentation.py /opt/training_unet_only_pet_segmentation.py
+  dataset_pet.py /opt/dataset_pet.py
+  
 %runscript
+  echo "test"
   echo "$(pwd)"
-  python /opt/mnist_train.py 
-
+  cd /data/
+  echo "$(ls)"
 

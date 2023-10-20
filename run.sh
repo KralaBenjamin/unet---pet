@@ -1,0 +1,1 @@
+apptainer run --mount type=bind,src=/data/datapool3/datasets/krala/unet-pet,dst=/data/ training.sif
