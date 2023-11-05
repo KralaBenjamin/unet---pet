@@ -11,7 +11,6 @@ from os.path import join
 from random import random
 import torch
 from einops import rearrange
-from torchvision.transforms.functional import crop
 
 
 class PetOnlySegmentationDataSet(Dataset):

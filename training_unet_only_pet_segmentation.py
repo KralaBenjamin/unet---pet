@@ -10,10 +10,14 @@ from torchvision.transforms import Resize, CenterCrop
 from torchvision.transforms.functional import crop
 import gc
 import wandb
+from os import makedirs
+from pathlib import Path
+from json import dump
+
 
 def main():
     DEVICE = 'cuda'
-    EPOCHS = 5
+    EPOCHS = 1
     ONLY_OVERFIT = False
     BATCH_SIZE = 64
 
@@ -24,6 +28,12 @@ def main():
             'epochs': EPOCHS
         }
     )
+
+    EXPERIMENT_NAME = wandb.run.name
+    PATH_MODEL_DIRS=Path(f'./models/{EXPERIMENT_NAME}')
+    PATH_MODEL = PATH_MODEL_DIRS / 'best_model.pth'
+    print(f'{EXPERIMENT_NAME=}')
+
 
     model = UNET(3, 1).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters())
@@ -69,6 +79,7 @@ def main():
         print(summe / (pred.shape[-2] * pred.shape[-1]))
         exit()
 
+    list_statedict = list()
 
 
     for i_epoch in range(EPOCHS):
@@ -91,7 +102,7 @@ def main():
             
 
         accuracy_values = list()
-        for batch_x, batch_y in tqdm(val_dl):
+        for batch_x, batch_y in val_dl:
             model.eval()
             batch_x = batch_x.to(DEVICE)
             batch_y = batch_y.to(DEVICE)
@@ -116,10 +127,27 @@ def main():
         wandb.log(
             {'accuracy_mean': mean_all}
         )
+
+        list_statedict.append((mean_all.item(), model.state_dict().copy()))  
+
+
         #todo: welche Metriken für Segmentierung?
 
-        print(mean_all)
+        print(f"{mean_all=}")
 
     wandb.finish()
+    makedirs(PATH_MODEL_DIRS)
+    best_model_sd = max(list_statedict, key=lambda x:x[0])[1]
+    torch.save(best_model_sd, PATH_MODEL)
+    dump(
+        list(zip(train_image_list, train_seg_list)),
+        open(PATH_MODEL_DIRS / 'train_data_files.json', "w+")
+    )
+    dump(
+        list(zip(val_image_list, val_seg_list)),
+        open(PATH_MODEL_DIRS / 'val_data_files.json', "w+")
+    )
+
+    
 if __name__ == '__main__':
     main()
