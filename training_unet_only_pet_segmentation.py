@@ -17,9 +17,9 @@ from json import dump
 
 def main():
     DEVICE = 'cuda'
-    EPOCHS = 1
+    EPOCHS = 30
     ONLY_OVERFIT = False
-    BATCH_SIZE = 64
+    BATCH_SIZE = 32
 
     wandb.init(
         project='unet-pet',
