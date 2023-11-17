@@ -1,14 +1,14 @@
 import torch
 import torch.nn as nn
 import torchvision.transforms.functional as TF
-# Dateiloader für die Datenschreiben...
 
+# Dateiloader für die Datenschreiben...
 
 
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(DoubleConv, self).__init__()
-        self. conv = nn.Sequential(
+        self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 3, 1, 1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
@@ -22,38 +22,26 @@ class DoubleConv(nn.Module):
 
 
 class UNET(nn.Module):
-    def __init__(
-            self, in_channels=3, out_channels=1,
-            features=[64, 128, 256, 512]
-    ):
+    def __init__(self, in_channels=3, out_channels=1, features=[64, 128, 256, 512]):
         super(UNET, self).__init__()
         self.downs = nn.ModuleList()
         self.ups = nn.ModuleList()
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        #down part
+        # down part
         for feature in features:
-            self.downs.append(
-                DoubleConv(in_channels, feature)
-            )
+            self.downs.append(DoubleConv(in_channels, feature))
             in_channels = feature
 
-        #up part
+        # up part
         for feature in reversed(features):
             self.ups.append(
-                nn.ConvTranspose2d(
-                    feature*2, feature, kernel_size=2, stride=2
-                )
+                nn.ConvTranspose2d(feature * 2, feature, kernel_size=2, stride=2)
             )
-            self.ups.append(DoubleConv(
-                feature*2, feature
-            ))
+            self.ups.append(DoubleConv(feature * 2, feature))
 
-        self.bottleneck = DoubleConv(
-            features[-1], features[-1] * 2)
-        self.final_conv = nn.Conv2d(
-            features[0], out_channels, kernel_size=1
-        )
+        self.bottleneck = DoubleConv(features[-1], features[-1] * 2)
+        self.final_conv = nn.Conv2d(features[0], out_channels, kernel_size=1)
 
     def forward(self, x):
         skip_connections = list()
@@ -67,7 +55,7 @@ class UNET(nn.Module):
 
         for idx in range(0, len(self.ups), 2):
             x = self.ups[idx](x)
-            skip_connection = skip_connections[ idx // 2]
+            skip_connection = skip_connections[idx // 2]
             if x.shape != skip_connection.shape:
                 x = TF.resize(x, size=skip_connection.shape[2:])
 
@@ -75,7 +63,8 @@ class UNET(nn.Module):
             x = self.ups[idx + 1](concat_skip)
 
         return self.final_conv(x)
-    
+
+
 def test():
     x = torch.randn((3, 1, 161, 161))
     model = UNET(in_channels=1, out_channels=1)
@@ -84,5 +73,6 @@ def test():
     print(x.shape)
     assert preds.shape == x.shape
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     test()
