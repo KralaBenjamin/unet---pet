@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import List
 from loguru import logger
 from typing import Literal
+from copy import copy
+from sklearn.preprocessing import OneHotEncoder, LabelBinarizer
 
 class PetOnlySegmentationDataSet(Dataset):
     def __init__(self, ImageFileList, SegmentationFileList, transform=None):
@@ -89,8 +91,11 @@ def extract_hot_encodings(all_classes):
     # creates hot encoding
     eye_matrice = torch.eye(len(all_classes))
 
-    hot_encode = lambda x: eye_matrice[x]
-    class2hot_code = {classe: hot_encode(ide) for classe, ide in class2id.items()}
+    def create_he_tensor(x):
+        t1 = torch.zeros([len(all_classes)])
+        t1[x] = 1.0
+        return t1
+    class2hot_code = {classe: create_he_tensor(ide) for classe, ide in class2id.items()}
 
     return class2hot_code
 
@@ -128,16 +133,27 @@ class PetMulticlassSegmentationSet(Dataset):
 
         self.list_data = list()
         image_file2category = dict()
-        breedclass2he, animal2he = create_hot_encoders(ClassDescriptionFile)
+        #breedclass2he, animal2he = create_hot_encoders(ClassDescriptionFile)
+        #self.breedclass2he = breedclass2he
+        #self.animal2he = animal2he
         with open(ClassDescriptionFile, "r") as f:
             for line in f:
                 if line.startswith("#"):
                     continue
                 image, class_image, species_image, breed_id = line.split(" ")
                 image_file2category[image] = {
-                    "race": breedclass2he[(int(species_image), int(breed_id))],
-                    "animal": animal2he[int(species_image)],
+                    "race": (int(species_image), int(breed_id)),
+                    "animal": int(species_image),
                 }
+
+        list_classes = list({animal[target_class] for animal in image_file2category.values()})
+        class_to_i = {
+            class_element: i for i, class_element in enumerate(list_classes)
+        }
+
+        self.label_binariser = LabelBinarizer()
+        self.label_binariser.fit(list(class_to_i.values()))
+        self.class_to_i = class_to_i 
 
         for image_file_path, segmentation_file_path in zip(
             ImageFileList, SegmentationFileList
@@ -156,11 +172,13 @@ class PetMulticlassSegmentationSet(Dataset):
             )
 
     def __getitem__(self, index):
-        image_file = self.list_data[index]["image_path"]
-        seg_file = self.list_data[index]["seg_path"]
+        item = self.list_data[index]
+        image_file = item["image_path"]
+        seg_file = item["seg_path"]
 
-        # todo: C H W machen
-        he_target = self.list_data[index][self.target_class]
+        current_class_i = self.class_to_i[item[self.target_class]]
+        he_target = self.label_binariser.transform([current_class_i])[0]
+
         zero_target = np.zeros(he_target.shape)
 
         image = np.array(Image.open(image_file).convert("RGB"))
@@ -215,12 +233,12 @@ if __name__ == "__main__":
         transform=transform,
         target_class='race'
     )
-    train_dl = DataLoader(train_dataset, batch_size=2)
+    train_dl = DataLoader(train_dataset, batch_size=16)
 
     val_dataset = PetMulticlassSegmentationSet(
         image_desc_file, val_image_list, val_seg_list
     )
-    val_dl = DataLoader(val_dataset, batch_size=2)
+    val_dl = DataLoader(val_dataset, batch_size=16)
 
     print("trainign..")
     for x, y in train_dl:
