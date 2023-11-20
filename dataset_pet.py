@@ -14,7 +14,7 @@ from einops import rearrange
 from pathlib import Path
 from typing import List
 from loguru import logger
-
+from typing import Literal
 
 class PetOnlySegmentationDataSet(Dataset):
     def __init__(self, ImageFileList, SegmentationFileList, transform=None):
@@ -84,7 +84,6 @@ def get_train_val_file_list(image_path: Path, seg_path: Path, split=0.7):
 
 
 def extract_hot_encodings(all_classes):
-    print(all_classes)
     class2id = dict(zip(list(all_classes), range(len(all_classes))))
 
     # creates hot encoding
@@ -118,12 +117,14 @@ class PetMulticlassSegmentationSet(Dataset):
         ClassDescriptionFile: Path,
         ImageFileList: List[Path],
         SegmentationFileList: List[Path],
+        target_class: Literal['animal', 'race'] ="animal",
         transform=None,
     ):
         self.class_description_file = ClassDescriptionFile
         self.imagefilelist = ImageFileList
         self.segmentationfilelist = SegmentationFileList
         self.transform = transform
+        self.target_class = target_class
 
         self.list_data = list()
         image_file2category = dict()
@@ -158,24 +159,37 @@ class PetMulticlassSegmentationSet(Dataset):
         image_file = self.list_data[index]["image_path"]
         seg_file = self.list_data[index]["seg_path"]
 
+        # todo: C H W machen
+        he_target = self.list_data[index][self.target_class]
+        zero_target = np.zeros(he_target.shape)
+
         image = np.array(Image.open(image_file).convert("RGB"))
         segmentation = np.array(Image.open(seg_file))
 
         # siehe Pet Readme, beides Hintergrund
         # todo: ändern
-        segmentation[segmentation == 2] = 0
-        segmentation[segmentation == 3] = 0
+        segmentation_shape = (
+            segmentation.shape[0],
+            segmentation.shape[1],
+            he_target.shape[0])
+        he_segmentation = np.zeros(segmentation_shape)
+        he_segmentation[segmentation == 1] = he_target
+        he_segmentation[segmentation == 2] = zero_target
+        he_segmentation[segmentation == 3] = zero_target
 
         image = torch.tensor(image)
         image = rearrange(image, "H W C -> C H W")
         image = image.float()
 
-        segmentation = torch.tensor(segmentation).float()
+        he_segmentation = torch.tensor(he_segmentation)
+        he_segmentation = rearrange(he_segmentation, "H W C -> C H W")
+        he_segmentation = he_segmentation.float()
 
         if self.transform:
-            image, segmentation = self.transform(image), self.transform(segmentation)
+            image, he_segmentation = self.transform(image), self.transform(he_segmentation)
 
-        return image, segmentation
+    
+        return image, he_segmentation
 
     def __len__(self):
         return len(self.list_data)
@@ -195,14 +209,18 @@ if __name__ == "__main__":
     transform = CenterCrop((256, 256))
 
     train_dataset = PetMulticlassSegmentationSet(
-        image_desc_file, train_image_list, train_seg_list, transform=transform
+        image_desc_file, 
+        train_image_list, 
+        train_seg_list, 
+        transform=transform,
+        target_class='race'
     )
-    train_dl = DataLoader(train_dataset, batch_size=16)
+    train_dl = DataLoader(train_dataset, batch_size=2)
 
     val_dataset = PetMulticlassSegmentationSet(
         image_desc_file, val_image_list, val_seg_list
     )
-    val_dl = DataLoader(val_dataset, batch_size=16)
+    val_dl = DataLoader(val_dataset, batch_size=2)
 
     print("trainign..")
     for x, y in train_dl:
