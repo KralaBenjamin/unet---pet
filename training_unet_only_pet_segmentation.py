@@ -91,6 +91,7 @@ def main():
             optimizer.zero_grad()
 
         accuracy_values = list()
+        iou_values = list()
         for batch_x, batch_y in val_dl:
             model.eval()
             batch_x = batch_x.to(DEVICE)
@@ -100,26 +101,43 @@ def main():
             with torch.no_grad():
                 pred = model(batch_x)
                 pred = pred[:, 0, :, :]
-                pred_log = (pred > 0.5).float()
-                breakpoint()
-                acc = (pred_log == batch_y).sum() / (
-                    batch_size * pred.shape[-2] * pred.shape[-1]
-                )
+                pred_bool = (pred > 0.5)
+                pred_log = pred_bool.float()
+                
+                iou = torch.logical_and(pred_bool, batch_y).sum() / torch.logical_or(pred_bool, batch_y).sum()
+                acc  = (pred_log == batch_y).sum() / (batch_size * pred.shape[-2] * pred.shape[-1])
+                
                 accuracy_values.append((batch_size, acc))
+                iou_values.append([batch_size, iou])
 
-        sum_batch = sum([batch_size for batch_size, _ in accuracy_values])
+        sum_batch = sum([
+            batch_size for batch_size, _ in accuracy_values
+        ])
 
-        mean_all = sum(
-            [acc * batch_size / sum_batch for batch_size, acc in accuracy_values]
+        mean_iou = sum([
+            iou * batch_size / sum_batch
+            for batch_size, iou in iou_values
+        ])
+
+        mean_acc = sum([
+            acc * batch_size / sum_batch
+            for batch_size, acc in accuracy_values
+        ])
+
+        wandb.log(
+            {
+            'accuracy_mean': mean_acc,
+            'intersection over union mean': mean_iou
+            }
         )
 
-        wandb.log({"accuracy_mean": mean_all})
+        list_statedict.append((mean_iou.item(), model.state_dict().copy()))  
 
-        list_statedict.append((mean_all.item(), model.state_dict().copy()))
 
-        # todo: welche Metriken für Segmentierung?
+        #todo: welche Metriken für Segmentierung?
 
-        print(f"{mean_all=}")
+        print(f"{mean_acc=}")
+        print(f"{mean_iou=}")
 
     wandb.finish()
     makedirs(PATH_MODEL_DIRS)
