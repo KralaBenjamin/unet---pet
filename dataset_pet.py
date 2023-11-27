@@ -85,36 +85,6 @@ def get_train_val_file_list(image_path: Path, seg_path: Path, split=0.7):
     return (train_image_list, train_seg_list), (val_image_list, val_seg_list)
 
 
-def extract_hot_encodings(all_classes):
-    class2id = dict(zip(list(all_classes), range(len(all_classes))))
-
-    # creates hot encoding
-    eye_matrice = torch.eye(len(all_classes))
-
-    def create_he_tensor(x):
-        t1 = torch.zeros([len(all_classes)])
-        t1[x] = 1.0
-        return t1
-    class2hot_code = {classe: create_he_tensor(ide) for classe, ide in class2id.items()}
-
-    return class2hot_code
-
-
-def create_hot_encoders(ClassDescriptionFile: Path):
-    list_data = list()
-    with open(ClassDescriptionFile, "r") as f:
-        for line in f:
-            if line.startswith("#"):
-                continue
-
-            image, class_image, species_image, breed_id = line.split(" ")
-            list_data.append((int(species_image), int(breed_id)))
-
-    breedclass2he = extract_hot_encodings(list_data)
-    animal2he = extract_hot_encodings([1, 2])
-
-    return breedclass2he, animal2he
-
 
 class PetMulticlassSegmentationSet(Dataset):
     def __init__(
@@ -133,9 +103,7 @@ class PetMulticlassSegmentationSet(Dataset):
 
         self.list_data = list()
         image_file2category = dict()
-        #breedclass2he, animal2he = create_hot_encoders(ClassDescriptionFile)
-        #self.breedclass2he = breedclass2he
-        #self.animal2he = animal2he
+
         with open(ClassDescriptionFile, "r") as f:
             for line in f:
                 if line.startswith("#"):
@@ -183,9 +151,7 @@ class PetMulticlassSegmentationSet(Dataset):
 
         image = np.array(Image.open(image_file).convert("RGB"))
         segmentation = np.array(Image.open(seg_file))
-
-        # siehe Pet Readme, beides Hintergrund
-        # todo: ändern
+        
         segmentation_shape = (
             segmentation.shape[0],
             segmentation.shape[1],
@@ -211,6 +177,9 @@ class PetMulticlassSegmentationSet(Dataset):
 
     def __len__(self):
         return len(self.list_data)
+    
+    def get_n_classes(self):
+        return self.label_binariser.classes_.shape[0]
 
 
 if __name__ == "__main__":
@@ -225,20 +194,28 @@ if __name__ == "__main__":
     from torchvision.transforms import Resize, CenterCrop
 
     transform = CenterCrop((256, 256))
+    target_class = 'animal'
 
     train_dataset = PetMulticlassSegmentationSet(
         image_desc_file, 
         train_image_list, 
         train_seg_list, 
         transform=transform,
-        target_class='race'
+        target_class=target_class
     )
     train_dl = DataLoader(train_dataset, batch_size=16)
+    print("n_classes train", train_dataset.get_n_classes())
 
     val_dataset = PetMulticlassSegmentationSet(
-        image_desc_file, val_image_list, val_seg_list
+        image_desc_file, 
+        val_image_list, 
+        val_seg_list,
+        transform=transform,
+        target_class=target_class
     )
     val_dl = DataLoader(val_dataset, batch_size=16)
+    print("n_classes val", val_dataset.get_n_classes())
+
 
     print("trainign..")
     for x, y in train_dl:

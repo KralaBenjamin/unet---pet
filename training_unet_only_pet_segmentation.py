@@ -5,10 +5,8 @@ from unet import UNET
 from dataset_pet import get_train_val_file_list, PetOnlySegmentationDataSet
 import torch
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 from torchvision.transforms import Resize, CenterCrop
 from torchvision.transforms.functional import crop
-import gc
 import wandb
 from os import makedirs
 from pathlib import Path
@@ -103,6 +101,7 @@ def main():
                 pred = model(batch_x)
                 pred = pred[:, 0, :, :]
                 pred_log = (pred > 0.5).float()
+                breakpoint()
                 acc = (pred_log == batch_y).sum() / (
                     batch_size * pred.shape[-2] * pred.shape[-1]
                 )
