@@ -179,7 +179,8 @@ class PetMulticlassSegmentationSet(Dataset):
         return len(self.list_data)
     
     def get_n_classes(self):
-        return self.label_binariser.classes_.shape[0]
+        _, y_element = self.__getitem__(0)
+        return y_element.shape[0]
 
 
 if __name__ == "__main__":

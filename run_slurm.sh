@@ -8,6 +8,4 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 
-echo "starte"
 bash ./run.sh            # <--- main call exiting with return code 5 for FAILED
-echo "beende"
