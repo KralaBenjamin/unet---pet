@@ -192,7 +192,7 @@ if __name__ == "__main__":
     ) = get_train_val_file_list(image_list, seg_list)
 
     image_desc_file = "data/pets/annotations/list.txt"
-    from torchvision.transforms import Resize, CenterCrop
+    from torchvision.transforms import CenterCrop
 
     transform = CenterCrop((256, 256))
     target_class = 'animal'
