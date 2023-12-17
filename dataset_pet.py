@@ -94,6 +94,7 @@ class PetMulticlassSegmentationSet(Dataset):
         SegmentationFileList: List[Path],
         target_class: Literal['animal', 'race'] ="animal",
         transform=None,
+        debug=False
     ):
         self.class_description_file = ClassDescriptionFile
         self.imagefilelist = ImageFileList
@@ -116,8 +117,9 @@ class PetMulticlassSegmentationSet(Dataset):
 
         list_classes = list({animal[target_class] for animal in image_file2category.values()})
         class_to_i = {
-            class_element: i for i, class_element in enumerate(list_classes)
+            class_element: i + 1 for i, class_element in enumerate(list_classes)
         }
+        class_to_i |= {'no_content': 0}
 
         self.label_binariser = LabelBinarizer()
         self.label_binariser.fit(list(class_to_i.values()))
@@ -138,16 +140,18 @@ class PetMulticlassSegmentationSet(Dataset):
                 }
                 | image_file2category[image_name]
             )
+        self.debug = debug
 
     def __getitem__(self, index):
+        if self.debug:
+            breakpoint()
         item = self.list_data[index]
         image_file = item["image_path"]
         seg_file = item["seg_path"]
 
         current_class_i = self.class_to_i[item[self.target_class]]
         he_target = self.label_binariser.transform([current_class_i])[0]
-
-        zero_target = np.zeros(he_target.shape)
+        zero_target = self.label_binariser.transform([0])[0]
 
         image = np.array(Image.open(image_file).convert("RGB"))
         segmentation = np.array(Image.open(seg_file))
@@ -156,6 +160,7 @@ class PetMulticlassSegmentationSet(Dataset):
             segmentation.shape[0],
             segmentation.shape[1],
             he_target.shape[0])
+        
         he_segmentation = np.zeros(segmentation_shape)
         he_segmentation[segmentation == 1] = he_target
         he_segmentation[segmentation == 2] = zero_target
