@@ -93,6 +93,7 @@ class PetMulticlassSegmentationSet(Dataset):
         ImageFileList: List[Path],
         SegmentationFileList: List[Path],
         target_class: Literal['animal', 'race'] ="animal",
+        ClassInformation=None, 
         transform=None,
         debug=False
     ):
@@ -115,15 +116,22 @@ class PetMulticlassSegmentationSet(Dataset):
                     "animal": int(species_image),
                 }
 
-        list_classes = list({animal[target_class] for animal in image_file2category.values()})
-        class_to_i = {
-            class_element: i + 1 for i, class_element in enumerate(list_classes)
-        }
-        class_to_i |= {'no_content': 0}
 
-        self.label_binariser = LabelBinarizer()
-        self.label_binariser.fit(list(class_to_i.values()))
-        self.class_to_i = class_to_i 
+
+        if ClassInformation is None:
+            list_classes = list({animal[target_class] for animal in image_file2category.values()})
+            class_to_i = {
+                class_element: i + 1 for i, class_element in enumerate(list_classes)
+            }
+            class_to_i |= {'no_content': 0}
+            
+            self.label_binariser = LabelBinarizer()
+            self.label_binariser.fit(list(class_to_i.values()))
+            self.class_to_i = class_to_i
+        else:
+            label_binariser, class_to_i = ClassInformation
+            self.label_binariser = label_binariser
+            self.class_to_i = class_to_i
 
         for image_file_path, segmentation_file_path in zip(
             ImageFileList, SegmentationFileList
@@ -186,6 +194,9 @@ class PetMulticlassSegmentationSet(Dataset):
     def get_n_classes(self):
         _, y_element = self.__getitem__(0)
         return y_element.shape[0]
+    
+    def get_class_information(self):
+        return self.label_binariser, self.class_to_i
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from os import makedirs
 from pathlib import Path
 from json import dump
+from pickle import dump as pickledump
 
 from unet import UNET
 from dataset_pet import get_train_val_file_list, PetMulticlassSegmentationSet
@@ -85,12 +86,14 @@ def main():
         target_class=MULTICLASS_TARGET
     )
     train_dl = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
+    class_information_train = train_dataset.get_class_information() #so labels do have the same meaning
 
     val_dataset = PetMulticlassSegmentationSet(
         image_desc_file,
         val_image_list, 
         val_seg_list, 
         target_class=MULTICLASS_TARGET,
+        ClassInformation=class_information_train
     )
     val_dl = DataLoader(val_dataset, batch_size=1)
 
@@ -137,7 +140,6 @@ def main():
 
         exit()
     list_statedict = list()
-    first_element_iou = list()
     for i_epoch in range(EPOCHS):
         for batch_x, batch_y in train_dl:
 
@@ -232,6 +234,11 @@ def main():
 
     wandb.finish()
     makedirs(PATH_MODEL_DIRS)
+
+    pickledump(
+        train_dataset.get_class_information(),
+        open(PATH_MODEL_DIRS / "class_information.pickle", "wb+")
+    )
 
     dump(
         list(zip(map(str, train_image_list), map(str, train_seg_list))),
