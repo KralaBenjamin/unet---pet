@@ -124,7 +124,6 @@ class PetMulticlassSegmentationSet(Dataset):
                 class_element: i + 1 for i, class_element in enumerate(list_classes)
             }
             class_to_i |= {'no_content': 0}
-            
             self.label_binariser = LabelBinarizer()
             self.label_binariser.fit(list(class_to_i.values()))
             self.class_to_i = class_to_i
@@ -197,6 +196,17 @@ class PetMulticlassSegmentationSet(Dataset):
     
     def get_class_information(self):
         return self.label_binariser, self.class_to_i
+    
+    def get_json_list(self, category="race"):
+        json_list = [
+            (
+                str(element['image_path']),
+                str(element['seg_path']),
+                element[category],
+            )
+            for element in self.list_data
+        ]
+        return json_list
 
 
 if __name__ == "__main__":

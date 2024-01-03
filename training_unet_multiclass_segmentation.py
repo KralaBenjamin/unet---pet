@@ -53,8 +53,6 @@ def main():
     BATCH_SIZE = 32
     MULTICLASS_TARGET = 'race'# , race, animal
 
-    
-
     wandb.init(
         project="unet-pet-multiclass", 
         config={
@@ -241,13 +239,13 @@ def main():
     )
 
     dump(
-        list(zip(map(str, train_image_list), map(str, train_seg_list))),
+        train_dataset.get_json_list(category=MULTICLASS_TARGET),
         open(PATH_MODEL_DIRS / "train_data_files.json", "w+"),
     )
 
 
     dump(
-        list(zip(map(str, val_image_list), map(str, val_seg_list))),
+        val_dataset.get_json_list(category=MULTICLASS_TARGET),
         open(PATH_MODEL_DIRS / "val_data_files.json", "w+"),
     )
 
