@@ -52,6 +52,8 @@ def main():
     BATCH_SIZE = 32
     MULTICLASS_TARGET = 'race'# , race, animal
 
+    
+
     wandb.init(
         project="unet-pet-multiclass", 
         config={
@@ -72,7 +74,7 @@ def main():
     (train_image_list, train_seg_list), (
         val_image_list,
         val_seg_list,
-    ) = get_train_val_file_list(image_path, seg_path)
+    ) = get_train_val_file_list(image_path, seg_path)    
     transform = CenterCrop((256, 256))
 
     train_dataset = PetMulticlassSegmentationSet(
@@ -216,7 +218,7 @@ def main():
         value_dict = {
             'f1': f1,
             'acc': acc,
-            'mean iou': mean_iou,
+            'mean_iou': mean_iou,
             'homo': mean_homogenity,
             }
         state_dict = value_dict | {'state': model.state_dict().copy()}
@@ -230,20 +232,23 @@ def main():
 
     wandb.finish()
     makedirs(PATH_MODEL_DIRS)
+
+    dump(
+        list(zip(map(str, train_image_list), map(str, train_seg_list))),
+        open(PATH_MODEL_DIRS / "train_data_files.json", "w+"),
+    )
+
+
+    dump(
+        list(zip(map(str, val_image_list), map(str, val_seg_list))),
+        open(PATH_MODEL_DIRS / "val_data_files.json", "w+"),
+    )
+
+
     for metric in value_dict.keys():
         PATH_MODEL = PATH_MODEL_DIRS / f"model_best_{metric}.pth"
         best_model_sd = max(list_statedict, key=lambda x: x[metric])['state']
         torch.save(best_model_sd, PATH_MODEL)
-
-
-    dump(
-        list(zip(train_image_list, train_seg_list)),
-        open(PATH_MODEL_DIRS / "train_data_files.json", "w+"),
-    )
-    dump(
-        list(zip(val_image_list, val_seg_list)),
-        open(PATH_MODEL_DIRS / "val_data_files.json", "w+"),
-    )
 
 
 if __name__ == "__main__":
